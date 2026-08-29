@@ -59,7 +59,6 @@
         }
         .form-group input:focus { border-color:#1a73e8; box-shadow:0 1px 3px rgba(26,115,232,0.15); }
         .form-group input::placeholder { color:#9aa0a6; }
-        .form-group input:disabled { background:#f1f3f4; color:#5f6368; cursor:not-allowed; }
         .form-options {
             display:flex; justify-content:space-between; align-items:center;
             flex-wrap:wrap; gap:8px; margin:8px 0 24px;
@@ -167,12 +166,12 @@
         document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
     }
 
-    // ─── Restore stored email (without any message) ──────────────────
+    // ─── Restore stored email (pre‑fill but keep field editable) ──
     const storedEmail = getCookie(COOKIE_NAME);
     if (storedEmail) {
         emailInput.value = storedEmail;
-        emailInput.disabled = true;
-        emailInput.style.background = '#f1f3f4';
+        // emailInput.disabled = true;   // <-- removed – user can now change it
+        emailInput.style.background = '';
         rememberCheck.checked = true;
     } else {
         emailInput.disabled = false;
